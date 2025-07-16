@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Мониторинг марафонов PW</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #4a6fa5;
+        --success: #4caf50;
+        --error: #d32f2f;
+        --light: #f8f9fa;
+        --dark: #343a40;
+      }
+
+      body {
+        font-family: "Roboto", sans-serif;
+        background-color: #f5f7fa;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      h1 {
+        color: var(--primary);
+        margin: 0;
+      }
+
+      .last-update {
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      .account-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+        overflow: hidden;
+      }
+
+      .account-header {
+        background-color: var(--primary);
+        color: white;
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .account-info {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+
+      .account-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+
+      .account-label {
+        font-weight: 500;
+        min-width: 80px;
+      }
+
+      .account-value {
+        margin-left: 10px;
+      }
+
+      .add-alias-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 2px 5px;
+        margin-left: 5px;
+        border-radius: 3px;
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .add-alias-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .alias-form {
+        display: none;
+        position: absolute;
+        background: white;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        z-index: 100;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .alias-input {
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        margin-right: 5px;
+        width: 150px;
+      }
+
+      .save-btn {
+        padding: 5px 10px;
+        background-color: #4a6fa5;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      .save-btn:hover {
+        background-color: #3a5a8f;
+      }
+
+      .account-status {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        margin-left: 20px;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 10px;
+        font-size: 14px;
+        background: #e8f5e9;
+        color: #2e7d32;
+        margin-bottom: 5px;
+      }
+
+      .status-error {
+        background: #ffebee;
+        color: var(--error);
+      }
+
+      .last-check {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+       .group-container {
+            margin-bottom: 30px;
+        }
+      
+        .group-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary);
+        }
+      
+        .group-title {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: var(--primary);
+            margin-right: 15px;
+        }
+      
+        .group-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+        }
+      
+        .group-action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 8px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+      
+        .group-action-btn.delete {
+            background: var(--error);
+        }
+      
+        .group-selector {
+            padding: 3px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        background: white;
+        color: #333;
+        }
+      
+        .new-group-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f4f8;
+            border-radius: 8px;
+        }
+      
+        .new-group-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+      
+        .new-group-btn {
+            padding: 8px 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .account-actions {
+            margin-left: 10px;
+        }
+
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #3a5a8f;
+        }
+
+        .refresh-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .delete-btn {
+            background: var(--error);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 5px;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #b71c1c;
+        }
+        
+        .promo-section {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .promo-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .promo-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .promo-btn {
+            padding: 8px 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .promo-status {
+            padding: 10px;
+            border-radius: 4px;
+            background: #f5f5f5;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Мониторинг марафонов PW</h1>
+        <div class="last-update">Обновлено: {{ last_update }}</div>
+        <div class="promo-section">
+            <h2>Управление промокодами</h2>
+            <div class="promo-controls">
+                <input type="text" id="promoCodeInput" placeholder="Введите промокод" class="promo-input">
+                <button class="promo-btn" onclick="activatePromoCode()">Активировать промокод</button>
+            </div>
+            <div id="promoStatus" class="promo-status"></div>
+        </div>
+      </header>
+
+        <!-- Форма создания новой группы -->
+        <div class="new-group-form">
+            <input type="text" class="new-group-input" id="newGroupName" placeholder="Название новой группы">
+            <button class="new-group-btn" onclick="createGroup()">Создать группу</button>
+        </div>
+
+        <!-- Отображение групп и аккаунтов -->
+        {% for group_name, accounts in accounts_data.items() %}
+        <div class="group-container">
+            <div class="group-header">
+                <div class="group-title">{{ group_name }}</div>
+                {% if group_name != "Общая" %}
+                <div class="group-actions">
+                    {% for group_id, name in groups %}
+                        {% if name == group_name %}
+                            <button class="group-action-btn delete" onclick="deleteGroup({{ group_id }})">Удалить группу</button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+      {% for account in accounts %}
+      <div class="account-card">
+        <div class="account-header" onclick="toggleTasks(this)">
+            <div class="account-info">
+              <div class="account-row">
+                <span class="account-label">Аккаунт:</span>
+                <span class="account-value">{{ account.username }}</span>
+              </div>
+
+              <div class="account-row">
+                  <span class="account-label">Монеты МДМ:</span>
+                  <span class="account-value">
+                      {{ account.mdm_coins or '0' }}
+                  </span>
+              </div>
+              
+
+             
+              <div class="account-row">
+                  {% if account.characters %}
+                    <span class="account-label">Персонаж для перевода:</span>
+                    <span class="account-value">
+                        <select class="server-selector" onchange="updateServerAndCharacters(this, this.value, '{{ account.username }}')" 
+                                onclick="event.stopPropagation()">
+                            <option value="">Выберите сервер</option>
+                            {% for server in account.servers %}
+                            <option value="{{ server }}" {% if account.server == server %}selected{% endif %}>{{ server }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <select class="character-selector" id="character_{{ account.username }}" 
+                                onchange="updateAccountSetting('{{ account.username }}', 'alias', this.value)"
+                                onclick="event.stopPropagation()">
+                            <option value="">Выберите персонажа</option>
+                            {% if account.server %}
+                                {% for char in account.characters[account.server] %}
+                                <option value="{{ char }}" {% if account.alias  == char %}selected{% endif %}>{{ char }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </span>
+                    {% else %}                    
+                    <span class="account-label">Нет предметов для перевода.</span>
+                    {% endif %}
+              </div>
+
+              <div class="account-row">
+                  <span class="account-label">Промокоды:</span>
+                  <span class="account-value">
+                      <input type="checkbox" id="usePromo_{{ account.username }}" onclick="event.stopPropagation();" 
+                            onchange="updateAccountSetting('{{ account.username }}', 'use_promo', this.checked)"
+                            {% if account.use_promo %}checked{% endif %}>
+                      <label for="usePromo_{{ account.username }}"  onclick="event.stopPropagation();" >Вводить промокод</label>
+                      
+                      <input type="checkbox" id="transferToGame_{{ account.username }}" onclick="event.stopPropagation();"  
+                            onchange="updateAccountSetting('{{ account.username }}', 'transfer_to_game', this.checked)"
+                            {% if account.transfer_to_game %}checked{% endif %}
+                            {% if not account.alias or not account.server %}disabled{% endif %}>
+                      <label for="transferToGame_{{ account.username }}"  onclick="event.stopPropagation();" >Переводить в игру</label>
+                  </span>
+              </div>
+                        
+              <div class="account-row">
+                <span class="account-label">Группа:</span>
+                <span class="account-value">
+                        <select class="group-selector" onchange="updateAccountGroup('{{ account.username }}', this.value)" onclick="event.stopPropagation()">
+                            <option value="null" {% if group_name == "Общая" %}selected{% endif %}>Общая</option>
+                            {% for group_id, name in groups %}
+                            <option value="{{ group_id }}" {% if group_name == name %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                </span>
+          </div>
+        </div>
+
+            <div class="account-status">
+              <div class="account-actions">
+                  <button class="refresh-btn" onclick="event.stopPropagation(); refreshAccount('{{ account.username }}')">
+                      🔄 Обновить
+                  </button>
+              </div>
+              <span class="status-badge status-{{ account.status }}">
+                {{ "✓ Успешно" if account.status == "success" else "✗ Ошибка" }}
+              </span>
+              <div class="last-check">
+                Последняя проверка:<br>
+                {% if account.last_success %}
+                  {{ account.last_success }}
+                {% else %}
+                  никогда
+                {% endif %}
+              </div>
+              <button class="delete-btn" onclick="event.stopPropagation(); confirmDeleteAccount('{{ account.username }}')">
+                  🗑️ Удалить аккаунт
+              </button>
+            </div>
+          </div>
+
+        {% if account.status == "success" %}
+        <div class="tasks-container" style="display: none; padding: 10px;">
+          {% for task in account.tasks %}
+          <div class="task-row" style="margin-bottom: 8px;">
+            <div style="display: flex; align-items: center;">
+              <div style="flex: 1;">{{ task.name }}</div>
+              <div style="width: 200px; background: #e9ecef; border-radius: 4px; height: 20px; margin: 0 10px;">
+                <div style="height: 100%; border-radius: 4px; background: #4CAF50; width: {{ task.percent }}%; 
+                     line-height: 20px; color: white; text-align: center; font-size: 12px;">
+                  {{ "%.0f"|format(task.percent) }}%
+                </div>
+              </div>
+              <div style="width: 60px; text-align: right; font-size: 13px;">
+                {{ task.x }}/{{ task.y }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="account-error" style="padding: 10px; color: #d32f2f; background: #ffebee;">
+          {{ account.message }}
+          </div>
+        {% endif %}
+            </div>
+            {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <script>
+      function toggleTasks(header) {
+        const tasks = header.nextElementSibling;
+        if (!tasks) return;
+
+        if (tasks.style.display === 'none') {
+          tasks.style.display = 'block';
+        } else {
+          tasks.style.display = 'none';
+        }
+      }
+
+      function showAliasForm(button, username) {
+        // Останавливаем всплытие события
+        event.stopPropagation();
+        
+        const form = document.createElement('div');
+        form.className = 'alias-form';
+        form.innerHTML = `
+          <input type="text" class="alias-input" placeholder="Псевдоним" value="">
+          <button type="button" class="save-btn" onclick="saveAlias('${username}', this)">Сохранить</button>
+        `;
+        
+        // Добавляем обработчик для формы, чтобы клики внутри нее не всплывали
+        form.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+        
+        button.parentNode.appendChild(form);
+        form.style.display = 'flex';
+        form.querySelector('.alias-input').focus();
+      }
+
+      function saveAlias(username, button) {
+        const form = button.parentNode;
+        const newAlias = form.querySelector('.alias-input').value.trim();
+
+        fetch('/update_alias', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `username=${encodeURIComponent(username)}&alias=${encodeURIComponent(newAlias)}`
+        }).then(() => {
+          location.reload();
+        });
+      }
+
+        function updateServerAndCharacters(event, server, username) {
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
+            
+            const characterSelect = document.getElementById(`character_${username}`);
+            
+            // Очищаем список персонажей
+            characterSelect.innerHTML = '<option value="">Выберите персонажа</option>';
+            
+            if (server) {
+                // Запрашиваем персонажей для выбранного сервера
+                fetch(`/get_characters?username=${encodeURIComponent(username)}&server=${encodeURIComponent(server)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        data.characters.forEach(char => {
+                            const option = document.createElement('option');
+                            option.value = char;
+                            option.textContent = char;
+                            characterSelect.appendChild(option);
+                        });
+                        
+                        // Обновляем сервер в базе данных
+                        console.log('Before updateAccountSetting', username, server);
+                      updateAccountSetting(username, 'server', server);
+                      console.log('After updateAccountSetting');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching characters:', error);
+                    });
+            }
+        }
+
+      function refreshAccount(username) {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = 'Обновление...';
+        
+        fetch('/refresh_account', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `username=${encodeURIComponent(username)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Перезагружаем страницу для отображения новых данных
+                location.reload();
+            } else {
+                alert(data.message || 'Ошибка при обновлении');
+                btn.disabled = false;
+                btn.textContent = '🔄 Обновить';
+            }
+        })
+        .catch(error => {
+            alert('Ошибка сети: ' + error.message);
+            btn.disabled = false;
+            btn.textContent = '🔄 Обновить';
+        });
+    }
+
+        function updateAccountGroup(username, groupId) {
+            fetch('/update_group', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}&group_id=${encodeURIComponent(groupId)}`
+            }).then(() => {
+                location.reload();
+            });
+        }
+
+        function createGroup() {
+            const groupName = document.getElementById('newGroupName').value.trim();
+            if (groupName && groupName !== "Общая") {
+                fetch('/create_group', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `group_name=${encodeURIComponent(groupName)}`
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        }
+
+        function deleteGroup(groupId) {
+            if (confirm('Вы уверены, что хотите удалить эту группу? Аккаунты будут перемещены в "Общую" группу.')) {
+                fetch('/delete_group', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `group_id=${encodeURIComponent(groupId)}`
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        }
+
+        function confirmDeleteAccount(username) {
+            if (confirm(`Вы уверены, что хотите удалить аккаунт ${username} и его файлы куки?\nЭто действие нельзя отменить!`)) {
+                deleteAccount(username);
+            }
+        }
+
+        function deleteAccount(username) {
+            fetch('/delete_account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}`
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+            })
+            .catch(error => {
+                alert('Ошибка сети: ' + error.message);
+            });
+        }
+
+        function updateAccountServer(username, server) {
+                  // Останавливаем всплытие события
+            event.stopPropagation();
+            fetch('/update_account_setting', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}&field=server&value=${encodeURIComponent(server)}`
+            }).then(() => {
+                // Обновляем состояние чекбокса "Переводить в игру"
+                const transferCheckbox = document.getElementById(`transferToGame_${username}`);
+                const aliasExists = document.querySelector(`span.account-value[data-username="${username}"]`).textContent.trim() !== '';
+                transferCheckbox.disabled = !(server && aliasExists);
+                if (transferCheckbox.disabled) {
+                    transferCheckbox.checked = false;
+                }
+            });
+        }
+
+        function updateAccountSetting(username, field, value) {
+                // Останавливаем всплытие события
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
+            fetch('/update_account_setting', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}&field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}`
+            });
+        }
+
+        function activatePromoCode() {
+            const promoCode = document.getElementById('promoCodeInput').value.trim();
+            if (!promoCode) return;
+
+            const btn = document.querySelector('.promo-btn');
+            btn.disabled = true;
+            btn.textContent = 'Активируется...';
+            
+            const statusDiv = document.getElementById('promoStatus');
+            statusDiv.textContent = 'Начата активация промокода...';
+            statusDiv.style.backgroundColor = '#fff3e0';
+
+            fetch('/activate_promo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `promo_code=${encodeURIComponent(promoCode)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusDiv.textContent = `Промокод активирован для ${data.activated} аккаунтов. Ошибки: ${data.errors}`;
+                    statusDiv.style.backgroundColor = '#e8f5e9';
+                } else {
+                    statusDiv.textContent = `Ошибка: ${data.message}`;
+                    statusDiv.style.backgroundColor = '#ffebee';
+                }
+            })
+            .catch(error => {
+                statusDiv.textContent = `Ошибка сети: ${error.message}`;
+                statusDiv.style.backgroundColor = '#ffebee';
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Активировать промокод';
+            });
+        }
+    </script>
+  </body>
+</html>
