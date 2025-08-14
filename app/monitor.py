@@ -26,6 +26,8 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import NoSuchElementException
+
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 # Импорты Telegram
@@ -94,7 +96,7 @@ class MarathonMonitor:
                 bot = telegram.Bot(token=self.bot_token)
                 await bot.send_message(
                     chat_id=self.chat_id, 
-                    text=message,
+                    text=self.escape_markdown_v2(message),
                     parse_mode="MarkdownV2"
                 )
             except TelegramError as e:
@@ -185,6 +187,36 @@ class MarathonMonitor:
                     gifts_message.append(f"  • {gift['name']} (до {gift['expires']})")
             gifts_message.append("```")
             self.send_telegram_notification("\n".join(gifts_message))
+
+    def escape_markdown_v2(self, text: str) -> str:
+        # Сначала экранируем все спецсимволы
+        escape_chars = r'_*[]()~`>#+-=|{}.!'
+        escaped = []
+        i = 0
+        n = len(text)
+        
+        while i < n:
+            # Пропускаем валидные блоки кода ```
+            if text.startswith('```', i):
+                escaped.append('```')
+                i += 3
+                # Ищем закрывающие ```
+                end = text.find('```', i)
+                if end == -1:
+                    escaped.append(text[i:])
+                    break
+                escaped.append(text[i:end])
+                escaped.append('```')
+                i = end + 3
+            else:
+                char = text[i]
+                if char in escape_chars:
+                    escaped.append(f'\\{char}')
+                else:
+                    escaped.append(char)
+                i += 1
+        
+        return ''.join(escaped)
     # =============================================
     # Методы работы с Selenium
     # =============================================
