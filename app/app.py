@@ -11,6 +11,7 @@ import os
 import threading
 from datetime import datetime
 from typing import Dict, List
+import logging
 
 from flask import Flask, flash, render_template, request, redirect
 from monitor import MarathonMonitor
@@ -20,7 +21,7 @@ from models import Database
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True  # Автоперезагрузка шаблонов
 app.config['DATABASE_URL'] = os.getenv('DATABASE_URL')  # URL базы данных
-
+logger = logging.getLogger(__name__)
 # Инициализация подключения к БД
 db = Database(app.config['DATABASE_URL'])
 
@@ -62,7 +63,7 @@ def prepare_accounts_data() -> Dict[str, List[Dict]]:
         # Формируем информацию о персонажах
         characters = {}
         servers = set()
-        for char_server, char_name in characters_data:
+        for char_server, char_name, _, _ in characters_data:
             servers.add(char_server)
             characters.setdefault(char_server, []).append(char_name)
 
@@ -303,6 +304,78 @@ def activate_promo():
             "message": str(e)
         }), 500
     
+@app.route('/transfer_gifts', methods=['POST'])
+def transfer_gifts():
+    """Передача подарков для одного аккаунта."""
+    username = request.form['username']
+    
+    if not username:
+        logger.error(f"Не указано имя пользователя")
+        return json.dumps({"status": "error", "message": "Не указано имя пользователя"}), 400
+    
+    try:
+        if monitor and monitor.is_checking:           
+            logger.error(f"{username} - В данный момент выполняется другая проверка")
+            return json.dumps({
+                "status": "error", 
+                "message": "В данный момент выполняется другая проверка"
+            }), 423
+        
+        cookie_file = f"{username}.pkl"
+        if not os.path.exists(os.path.join(monitor.cookies_dir, cookie_file)):            
+            logger.error(f"{username} - Файл с куками не найден")
+            return json.dumps({
+                "status": "error", 
+                "message": "Файл с куками не найден"
+            }), 404
+        
+        result = monitor.transfer_gifts_to_game(cookie_file)
+        if result.get('status') == 'error':
+            logger.error(result.get('message'))
+        return json.dumps(result)
+    except Exception as e:
+        return json.dumps({
+            "status": "error", 
+            "message": str(e)
+        }), 500
+
+@app.route('/transfer_all_gifts', methods=['POST'])
+def transfer_all_gifts():
+    """Передача подарков для всех аккаунтов."""
+    try:
+        if monitor and monitor.is_checking:
+            return json.dumps({
+                "status": "error", 
+                "message": "В данный момент выполняется другая проверка"
+            }), 423
+        
+        cookie_files = [f for f in os.listdir(monitor.cookies_dir) if f.endswith('.pkl')]
+        transferred = 0
+        errors = 0
+        
+        for cookie_file in cookie_files:
+            try:
+                result = monitor.transfer_gifts_to_game(cookie_file)
+                
+                if result.get('status') == 'success':
+                    transferred += 1
+                elif result.get('status') != 'skip':
+                    logger.error(result.get('message'))
+                    errors += 1
+            except Exception as e:
+                errors += 1
+                print(f"Ошибка передачи подарков для {cookie_file}: {e}")
+        
+        return json.dumps({
+            "status": "success",
+            "transferred": transferred,
+            "errors": errors
+        })
+    except Exception as e:
+        return json.dumps({
+            "status": "error", 
+            "message": str(e)
+        }), 500   
 @app.route('/create_group', methods=['POST'])
 def create_group():
     """
@@ -359,7 +432,7 @@ def update_alias():
 def run_monitor():
     """Запуск монитора в отдельном потоке."""
     global monitor
-    monitor = MarathonMonitor(headless=True)
+    monitor = MarathonMonitor(headless=False)
     monitor.start_scheduled_monitoring()
 
 if __name__ == '__main__':

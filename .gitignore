@@ -1,2 +1,3 @@
 *.pkl
 /app/__pycache__
+monitor.log

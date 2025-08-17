@@ -26,8 +26,8 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from selenium.common.exceptions import NoSuchElementException
-
+from selenium.webdriver.common.keys import Keys 
+from selenium.webdriver.support.ui import Select
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 # Импорты Telegram
@@ -54,7 +54,7 @@ logging.basicConfig(
 class MarathonMonitor:
     """Класс для мониторинга аккаунтов Perfect World."""
 
-    def __init__(self, headless: bool = True):
+    def __init__(self, headless: bool = False):
         """
         Инициализация монитора.
         
@@ -252,7 +252,7 @@ class MarathonMonitor:
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
 
-        max_attempts = 5  # Максимальное количество попыток
+        max_attempts = 50  # Максимальное количество попыток
         attempt = 0
         
         while attempt < max_attempts:
@@ -336,7 +336,6 @@ class MarathonMonitor:
         logger.info(percent)
         logger.info(int(round(percent / 100 * width)))
         filled_count = int(round(percent / 100 * width))        
-        logger.info(filled * filled_count + empty * (width - filled_count))
         return filled * filled_count + empty * (width - filled_count)
     
     def _parse_gift_date(self, date_text: str) -> Optional[datetime]:
@@ -563,7 +562,13 @@ class MarathonMonitor:
                     )
                 # Проверяем подарки
                 gifts = self._check_account_gifts(driver, username)
-                    
+
+                # if (account_data := self.db.get_account_data(username)) and account_data.get('transfer_to_game'):
+                #     gift_items = self._process_gift_items(driver, username)
+                # else:
+                #     gift_items = {'status': 'skip', 'message': 'Аккаунт не настроен для отправки подарков'}
+
+                                    
                 return {
                     "username": username,
                     "status": "success",
@@ -572,7 +577,8 @@ class MarathonMonitor:
                     "gifts": gifts
                 }
                 
-            finally:
+            finally:                
+                logger.info("--------------------------------------------------")
                 driver.quit()  # Всегда закрываем драйвер
                 
         except Exception as e:
@@ -606,7 +612,7 @@ class MarathonMonitor:
             previous_data = {}
             groups = {}
             for username, alias, _, _, _, _, group_id, group_name, mdm_coins, tasks in self.db.get_accounts_with_tasks_and_groups():
-                group_key = group_name or "Без группы"
+                group_key = group_name or "Общая"
                 previous_data[username] = {
                     'alias': alias,
                     'group_id': group_id,
@@ -631,7 +637,7 @@ class MarathonMonitor:
                 
                 username = account_data['username']
                 prev_data = previous_data.get(username, {})
-                group_name = prev_data.get('group_name', "Без группы")
+                group_name = prev_data.get('group_name', "Общая")
                 display_name = account_data.get('alias', username)
                 
                 if account_data['status'] != 'success':
@@ -673,7 +679,7 @@ class MarathonMonitor:
                                 f"({'🔼 +' if diff > 0 else ''}{diff if diff != 0 else ''})"
                             )
                     else:
-                        progress_bar = self._get_progress_bar(0)
+                        progress_bar = self._get_progress_bar(current_x/current_y*100)
                         task_changes.append(f"    {progress_bar} {task_name}: {current_x}/{current_y} (новое)")
                 
                 if task_changes:
@@ -823,6 +829,160 @@ class MarathonMonitor:
         except Exception as e:
             logger.error(f"Ошибка проверки подарков для {username}: {e}")
             return []
+        
+    def _process_gift_items(self, driver: WebDriver, username: str) -> Dict[str, Any]:
+        """Обрабатывает предметы для отправки в игру."""
+        try:
+            # Проверяем возможность отправки
+            account_data = self.db.get_account_data(username)
+            if not (account_data and account_data.get('transfer_to_game') 
+                    and account_data.get('server') and account_data.get('alias')):
+                return {'status': 'skip', 'message': 'Аккаунт не настроен для отправки подарков'}
+            # Собираем все подарки
+            gifts = []
+            chests = []
+            # Обрабатываем обычные предметы
+            item_blocks = driver.find_elements(By.XPATH, "//div[@class='item_input_block']")
+            for item in item_blocks:
+                try:
+                    checkbox = item.find_element(By.XPATH, ".//input[starts-with(@id, 'promo_item_id_')]")
+                    item_id = checkbox.get_attribute('id').replace('promo_item_id_', '')
+                    label = item.find_element(By.XPATH, ".//label").text.strip()
+                    date_element = item.find_element(By.XPATH, ".//span[@class='date_end']")
+                    date_text = date_element.text.strip()
+                    gifts.append({
+                        'type': 'item',
+                        'id': item_id,
+                        'date_expired':self._parse_gift_date(date_text),
+                        'name': label,
+                        'selected': False
+                    })
+                except:
+                    continue
+
+            return {
+                'status': 'success',
+                'gifts': gifts,
+                'chests': chests
+            }
+        except Exception as e:
+            logger.error(f"Ошибка обработки подарков для {username}: {e}")
+            return {'status': 'error', 'message': str(e)}
+        
+    def transfer_gifts_to_game(self, cookie_file: str) -> Dict[str, Any]:
+        """Передает подарки в игру для указанного аккаунта.
+        
+        Args:
+            cookie_file: Имя файла с куками
+            
+        Returns:
+            Словарь с результатами операции
+        """
+        try:
+            self.is_checking = True
+            username = cookie_file[:-4]  # Убираем расширение .pkl
+            logger.info(f"Передача подарков для аккаунта: {username}")
+
+            # Загрузка куков из файла
+            with open(os.path.join(self.cookies_dir, cookie_file), 'rb') as f:
+                cookies = pickle.load(f)
+            
+            driver = self.get_driver()
+            try:
+                # Установка куков
+                driver.get("https://pwonline.ru/")
+                for cookie in cookies:
+                    try:
+                        driver.add_cookie(cookie)
+                    except Exception as e:
+                        logger.warning(f"Ошибка добавления куки: {str(e)}")
+                
+                # Проверка авторизации
+                driver.get("https://pwonline.ru/promo_items.php")
+                if "Войти" in driver.title:
+                    print('Ошибка' + username)
+                    return {
+                        "status": "error",
+                        "message": "Ошибка авторизации"
+                    }
+                
+                # Получаем данные аккаунта из БД
+                account_data = self.db.get_account_data(username)
+                if not (account_data and account_data.get('transfer_to_game') 
+                        and account_data.get('server') and account_data.get('alias')):
+                    return {
+                        "status": "skip",
+                        "message": "Аккаунт не настроен для передачи подарков"
+                    }
+                
+                # Обрабатываем подарки
+                result = self._process_gift_items(driver, username)
+                if result['status'] != 'success':
+                    return result
+                
+                # Если есть подарки для передачи
+                if result.get('gifts'):
+                    transfer_result = self._send_gifts_to_game(driver, username, result)
+                    return transfer_result
+                
+                return {
+                    "status": "success",
+                    "message": "Нет подарков для передачи"
+                }
+                
+            finally:
+                driver.quit()
+        except Exception as e:
+            logger.error(f"Ошибка передачи подарков для {username}: {str(e)}")
+            return {
+                "status": "error",
+                "message": f"Ошибка: {str(e)}"
+            }   
+        finally:
+            self.is_checking = False
+
+    def _send_gifts_to_game(self, driver: WebDriver, username: str, selections: Dict[str, Any]) -> Dict[str, Any]:
+        """Отправляет выбранные подарки в игру."""
+        try:
+            # Проверяем возможность отправки
+            account_data = self.db.get_account_data(username)
+            if not (account_data and account_data.get('transfer_to_game') 
+                    and account_data.get('server') and account_data.get('alias')):
+                return {'status': 'skip', 'message': 'Аккаунт не настроен для отправки подарков'}
+
+            # Выбираем сервер и персонажа
+            server_select = Select(driver.find_element(By.XPATH, "//select[@class='js-shard']"))
+            server_select.select_by_visible_text(account_data['server'])
+            time.sleep(1)
+            character = self.db.get_character_info(username, account_data['server'], account_data["alias"])
+            char_select = Select(driver.find_element(By.XPATH, "//select[@class='js-char']"))
+            char_select.select_by_visible_text(character)
+            time.sleep(1)
+
+
+            # Более эффективный вариант - отмечаем только нужные чекбоксы
+            for item in selections.get('gifts', []):
+                try:
+                    driver.execute_script(f"document.querySelector('input[id=\"promo_item_id_{item['id']}\"]').checked = true;")
+                except:
+                    continue
+
+            # # Отправляем все выбранные предметы
+            transfer_btn = driver.find_element(By.XPATH, "//div[@class='go_items js-transfer-go']")
+            transfer_btn.click()
+            time.sleep(2)
+            
+            # Проверяем результат
+            success_msg = driver.find_element(By.XPATH, "//div[@id='content_top']/h2").text == "История передачи предметов в игру"
+            if success_msg:
+                return {'status': 'success', 'message': 'Подарки успешно отправлены'}
+            else:
+                error_msg = driver.find_elements(By.XPATH, "//div[@class='m_error']")
+                return {'status': 'error', 'message': error_msg[0].text if error_msg else 'Неизвестная ошибка'}
+                
+        except Exception as e:
+            logger.error(f"Ошибка отправки подарков для {username}: {e}")
+            return {'status': 'error', 'message': str(e)}
     # =============================================
     # Методы планировщика
     # =============================================

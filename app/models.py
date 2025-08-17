@@ -5,7 +5,6 @@ from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
-
 class Database:
     def __init__(self, connection_string: str):
         """Инициализация подключения к базе данных.
@@ -45,7 +44,7 @@ class Database:
                             server VARCHAR(50),                 -- Игровой сервер
                             use_promo BOOLEAN DEFAULT FALSE,    -- Флаг использования промокодов
                             transfer_to_game BOOLEAN DEFAULT FALSE, -- Флаг перевода наград
-                            mdm_coins VARCHAR(20) DEFAULT '0'   -- Баланс монет
+                            mdm_coins VARCHAR(20) DEFAULT NULL   -- Баланс монет
                         )
                     """)
 
@@ -246,8 +245,8 @@ class Database:
                         'alias': alias,
                         'last_success': last_success,
                         'server': server,
-                        'use_promo': use_promo if use_promo is not None else False,
-                        'transfer_to_game': transfer_to_game if transfer_to_game is not None else False,
+                        'use_promo': use_promo if use_promo is not None else None,
+                        'transfer_to_game': transfer_to_game if transfer_to_game is not None else None,
                         'group_id': group_id,
                         'mdm_coins': mdm_coins
                     }
@@ -268,6 +267,7 @@ class Database:
                         for key in defaults:
                             if defaults[key] is None:
                                 defaults[key] = current_data[key]
+                    
 
                     # Сохраняем/обновляем данные
                     cursor.execute("""
@@ -388,7 +388,7 @@ class Database:
             with self._get_connection() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        SELECT server, character_name 
+                        SELECT server, character_name, class_name, level 
                         FROM account_characters 
                         WHERE username = %s
                         ORDER BY server, character_name
@@ -397,6 +397,38 @@ class Database:
         except Exception as e:
             logger.error(f"Ошибка получения персонажей для {username}: {e}")
             return []    
+    
+    def get_character_info(self, username: str, server: str, character_name: str) -> str:
+        """Получает информацию о персонаже в заданном формате.
+        
+        Args:
+            username (str): Логин аккаунта
+            server (str): Название сервера
+            character_name (str): Имя персонажа
+            
+        Returns:
+            str: Строка в формате 'username (class_name, уровень:level)'
+                или пустая строка, если персонаж не найден
+        """
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT class_name, level 
+                        FROM account_characters 
+                        WHERE username = %s
+                        AND server = %s
+                        AND character_name = %s
+                    """, (username, server, character_name))
+                    result = cursor.fetchone()
+                    
+                    if result:
+                        class_name, level = result
+                        return f"{character_name} ({class_name}, уровень:{level})"
+                    return ""
+        except Exception as e:
+            logger.error(f"Ошибка получения информации о персонаже {username}@{server}:{character_name}: {e}")
+            return ""
 
     def get_account_characters_for_server(self, username: str, server: str) -> List[tuple]:
             """Получает персонажей аккаунта на конкретном сервере.

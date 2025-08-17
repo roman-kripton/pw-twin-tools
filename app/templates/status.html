@@ -310,6 +310,34 @@
             border-radius: 4px;
             background: #f5f5f5;
         }
+
+        .transfer-btn {
+            padding: 5px 10px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+
+        .transfer-btn:hover {
+            background: #f57c00;
+        }
+
+        .transfer-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .transfer-all-btn {
+            background: #ff9800;
+        }
+
+        .transfer-all-btn:hover {
+            background: #f57c00;
+        }
     </style>
   </head>
   <body>
@@ -322,6 +350,7 @@
             <div class="promo-controls">
                 <input type="text" id="promoCodeInput" placeholder="Введите промокод" class="promo-input">
                 <button class="promo-btn" onclick="activatePromoCode()">Активировать промокод</button>
+                <button class="promo-btn transfer-all-btn" onclick="transferAllGifts()">Передать подарки на все аккаунты</button>
             </div>
             <div id="promoStatus" class="promo-status"></div>
         </div>
@@ -408,6 +437,15 @@
                             {% if account.transfer_to_game %}checked{% endif %}
                             {% if not account.alias or not account.server %}disabled{% endif %}>
                       <label for="transferToGame_{{ account.username }}"  onclick="event.stopPropagation();" >Переводить в игру</label>
+                  </span>
+              </div>
+              <!-- В секции аккаунта добавим кнопку передачи подарков -->
+              <div class="account-row">
+                  <span class="account-label">Подарки:</span>
+                  <span class="account-value">
+                      <button class="transfer-btn" onclick="event.stopPropagation(); transferGifts('{{ account.username }}')">
+                          Передать все подарки
+                      </button>
                   </span>
               </div>
                         
@@ -561,6 +599,10 @@
                         console.error('Error fetching characters:', error);
                     });
             }
+            else
+            {              
+              updateAccountSetting(username, 'server', server);  
+            }
         }
 
       function refreshAccount(username) {
@@ -658,26 +700,6 @@
             });
         }
 
-        function updateAccountServer(username, server) {
-                  // Останавливаем всплытие события
-            event.stopPropagation();
-            fetch('/update_account_setting', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `username=${encodeURIComponent(username)}&field=server&value=${encodeURIComponent(server)}`
-            }).then(() => {
-                // Обновляем состояние чекбокса "Переводить в игру"
-                const transferCheckbox = document.getElementById(`transferToGame_${username}`);
-                const aliasExists = document.querySelector(`span.account-value[data-username="${username}"]`).textContent.trim() !== '';
-                transferCheckbox.disabled = !(server && aliasExists);
-                if (transferCheckbox.disabled) {
-                    transferCheckbox.checked = false;
-                }
-            });
-        }
-
         function updateAccountSetting(username, field, value) {
                 // Останавливаем всплытие события
             if (event && typeof event.stopPropagation === 'function') {
@@ -689,6 +711,20 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: `username=${encodeURIComponent(username)}&field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}`
+            }).then(() => {
+                if (field == "server" || field == "alias")
+                {                
+                  const server = document.querySelector(`.server-selector[onchange*="${username}"]`).value;
+                  const alias = document.querySelector(`.character-selector[id="character_${username}"]`).value;
+                  const transferCheckbox = document.getElementById(`transferToGame_${username}`);
+                  
+                  transferCheckbox.disabled = !(server && alias);
+                  if (transferCheckbox.disabled) {
+                    if (transferCheckbox.checked)
+                      updateAccountSetting(username, 'transfer_to_game', false);
+                      transferCheckbox.checked = false;
+                  }
+                }
             });
         }
 
@@ -728,6 +764,60 @@
             .finally(() => {
                 btn.disabled = false;
                 btn.textContent = 'Активировать промокод';
+            });
+        }
+
+        function transferGifts(username) {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Обработка...';
+            
+            fetch('/transfer_gifts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message || 'Подарки успешно переданы');
+                } else {
+                    alert(data.message || 'Ошибка при передаче подарков');
+                }
+                btn.disabled = false;
+                btn.textContent = 'Передать все подарки';
+            })
+            .catch(error => {
+                alert('Ошибка сети: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Передать все подарки';
+            });
+        }
+
+        function transferAllGifts() {
+            const btn = document.querySelector('.transfer-all-btn');
+            btn.disabled = true;
+            btn.textContent = 'Обработка...';
+            
+            fetch('/transfer_all_gifts', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(`Успешно передано подарков: ${data.transferred}\nОшибок: ${data.errors}`);
+                } else {
+                    alert(data.message || 'Ошибка при передаче подарков');
+                }
+                btn.disabled = false;
+                btn.textContent = 'Передать подарки на все аккаунты';
+            })
+            .catch(error => {
+                alert('Ошибка сети: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Передать подарки на все аккаунты';
             });
         }
     </script>
