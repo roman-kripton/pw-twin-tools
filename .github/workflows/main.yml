@@ -1,5 +1,7 @@
 name: VirusTotal Release Scan
 on:
+  push:
+    branches: [ main ]
   release:
     types: [ published ]
 

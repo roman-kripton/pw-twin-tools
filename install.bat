@@ -57,8 +57,8 @@ if %errorlevel% neq 0 (
 
 :: 4. Клонирование/обновление репозитория
 echo %YELLOW%[4/4]%RESET% %CYAN%Работа с репозиторием...%RESET%
-set REPO_URL=https://github.com/ваш-пользователь/ваш-репозиторий.git
-set REPO_DIR=ваш-репозиторий
+set REPO_URL=https://github.com/roman-kripton/pw-twin-tools.git
+set REPO_DIR=pw-twin-tools
 
 if exist "%REPO_DIR%" (
     echo %MAGENTA%Репозиторий найден.%RESET% %GREEN%Обновляем...%RESET%
