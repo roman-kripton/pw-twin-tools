@@ -12,7 +12,7 @@ from selenium.webdriver.remote.remote_connection import LOGGER
 class PWOAccountManager:
     def __init__(self):
         self.driver = None
-        self.cookies_dir = "app/cookies"
+        self.cookies_dir = "cookies"
         os.makedirs(self.cookies_dir, exist_ok=True)
         self._setup_logging()
         
