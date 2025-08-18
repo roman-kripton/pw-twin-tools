@@ -33,26 +33,26 @@ services:
       timeout: 10s
       retries: 10
 
-  # app:
-  #   build: .
-  #   container_name: pw-monitor
-  #   restart: unless-stopped
-  #   ports:
-  #     - "5009:5009"
-  #   volumes:
-  #     - ./app/cookies:/app/app/cookies
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #     selenium:
-  #       condition: service_healthy
-  #   environment:
-  #     - FLASK_ENV=production
-  #     - SELENIUM_URL=http://selenium:4444/wd/hub
-  #     - DATABASE_URL=postgresql://pwmonitor:pwmonitorpass@db:5432/pwmonitor
-  #     - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-  #     - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
-  #     - TZ=Europe/Moscow
+  app:
+    build: .
+    container_name: pw-monitor
+    restart: unless-stopped
+    ports:
+      - "5009:5009"
+    volumes:
+      - ./app/cookies:/app/app/cookies
+    depends_on:
+      db:
+        condition: service_healthy
+      selenium:
+        condition: service_healthy
+    environment:
+      - FLASK_ENV=production
+      - SELENIUM_URL=http://selenium:4444/wd/hub
+      - DATABASE_URL=postgresql://pwmonitor:pwmonitorpass@db:5432/pwmonitor
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - TZ=Europe/Moscow
 
 volumes:
   postgres_data:

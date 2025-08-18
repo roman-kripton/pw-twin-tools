@@ -73,7 +73,7 @@ if exist "%REPO_DIR%" (
 :: Установка зависимостей Python
 echo %CYAN%Установка Python зависимостей...%RESET%
 cd "%REPO_DIR%"
-pip install -r requirements-for-acc-tools.txt
+pip install -r requirements-for-acc.txt
 
 :: Запуск Docker Compose
 echo %CYAN%Запуск Docker Compose...%RESET%
