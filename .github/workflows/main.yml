@@ -1,24 +1,18 @@
-name: VirusTotal Release Scan
+name: VirusTotal Scan on Push
 on:
   push:
     branches: [ main ]
-  release:
-    types: [ published ]
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Download release asset
-        uses: actions/download-release-asset@v1
-        with:
-          repo: ${{ github.repository }}
-          release_id: ${{ github.event.release.id }}
-          asset_name: pw-twin-tools.zip  # Имя файла в релизе
+      - name: Checkout code
+        uses: actions/checkout@v4  # Клонирует репозиторий
 
-      - name: Scan with VirusTotal
+      - name: Scan file with VirusTotal
         uses: filips123/VirusTotal-Action@v1
         with:
           api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          file_path: ./pw-twin-tools.zip
-          public_share: true  # Создать публичную ссылку на отчёт
+          file_path: ./bin/app.exe  # Путь к файлу в репозитории
+          public_share: true
