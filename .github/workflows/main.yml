@@ -11,10 +11,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Find and scan all files
+      - name: Scan all files with VirusTotal
         uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
-            ./**
-          public_share: true  # Создаёт публичную ссылку на результат
+            **/*  # Проверяет все файлы в репозитории (кроме .git/)
