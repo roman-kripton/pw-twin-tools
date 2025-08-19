@@ -15,7 +15,6 @@ set RESET=%ESC%0m
 
 echo %BLUE%Проверка и установка необходимых компонентов...%RESET%
 echo.
-
 :: 1. Проверка Python 3.11
 echo %YELLOW%[1/4]%RESET% %CYAN%Проверка Python 3.11...%RESET%
 python --version 2>nul | find "3.11" >nul
