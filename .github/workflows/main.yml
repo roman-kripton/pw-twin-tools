@@ -3,7 +3,6 @@ name: VirusTotal Scan
 on:
   push:
     branches: [ main ]
-  pull_request:  # Опционально: проверять и при PR
 
 jobs:
   scan:
@@ -12,12 +11,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Find and scan all files in bin/
+      - name: Find and scan all files
         uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
-            ./app/**  # Рекурсивно проверяет все файлы в папке bin/
-          # Дополнительные опции (по желанию):
+            ./**
           public_share: true  # Создаёт публичную ссылку на результат
-          timeout: 60000      # Таймаут в мс (по умолчанию 30000)
