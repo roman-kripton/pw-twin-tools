@@ -13,13 +13,9 @@ jobs:
 
       - name: Scan all files with VirusTotal
         uses: crazy-max/ghaction-virustotal@v4    
-        env:
-          VT_DEBUG: 1
         with:
           vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
           files: |
-            !**/__init__.py
-            !**/.git/**
             ./app/*
             install.bat
             Dockerfile
