@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug GITHUB_TOKEN
+        run: |
+          echo "Token exists: ${{ secrets.GITHUB_TOKEN != '' }}"
       - uses: actions/checkout@v4
 
       - name: Create ZIP archive
