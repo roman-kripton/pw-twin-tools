@@ -1,31 +1,28 @@
-name: VirusTotal Scan on Push
-
-permissions:
-  contents: read
+name: VirusTotal Full Scan
 
 on:
   push:
+    branches: [ main ]
+  pull_request:  # Опционально: проверка и при PR
 
 jobs:
-  build:
+  scan:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
-      -
-        name: Set up Go
-        uses: actions/setup-go@v5
-      -
-        name: Build
-        run: |
-          GOOS=windows GOARCH=386 go build -o ./ghaction-virustotal-win32.exe -v -ldflags "-s -w"
-          GOOS=windows GOARCH=amd64 go build -o ./ghaction-virustotal-win64.exe -v -ldflags "-s -w"
-      -
-        name: VirusTotal Scan
+
+      - name: Find all files and scan with VirusTotal
         uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
-            ./ghaction-virustotal-win32.exe
-            ./ghaction-virustotal-win64.exe
+            ${{ steps.find_files.outputs.files }}
+        env:
+          VT_DEBUG: 1  # Детальный лог (опционально)
+        id: scan_files
+
+      - name: List files to scan
+        run: |
+          echo "Files to scan:"
+          echo "${{ steps.find_files.outputs.files }}"
