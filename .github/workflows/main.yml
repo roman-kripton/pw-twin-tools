@@ -1,22 +1,32 @@
-name: VirusTotal Scan
+name: Create Release with ZIP
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - "v*"  # Триггер при создании тега, начинающегося с "v"
 
 jobs:
-  scan:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Scan all files with VirusTotal
-        uses: crazy-max/ghaction-virustotal@v4    
+      - name: Create ZIP archive
+        uses: thedoctor0/zip-release@0.7.6
+        with:
+          type: 'zip'
+          filename: 'pw-twin-tools.zip'
+          exclusions: '*.git* .github/*'  # Исключаем ненужные файлы:cite[1]
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pw-twin-tools.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}:cite[6]
+      - name: Scan release files
+        uses: crazy-max/ghaction-virustotal@v4
         with:
           vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          files: |
-            ./app/*
-            install.bat
-            Dockerfile
-            docker-compose.yaml
+          files: pw-twin-tools.zip
+          vt_monitor: true  # Добавляет файлы в мониторинг VT[citation:предыдущий ответ]
