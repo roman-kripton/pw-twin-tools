@@ -16,7 +16,4 @@ jobs:
         with:
           vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
           files: |
-            ./app/*
-            install.bat
-            Dockerfile
-            docker-compose.yaml
+            **/*
