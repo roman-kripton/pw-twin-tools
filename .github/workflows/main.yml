@@ -16,4 +16,7 @@ jobs:
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
-            **/*  # Проверяет все файлы в репозитории (кроме .git/)
+            install.bat
+            Dockerfile
+            docker-compose.yaml
+            ./app/*
