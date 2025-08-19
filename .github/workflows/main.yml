@@ -1,4 +1,5 @@
-name: VirusTotal Scan on Push
+name: VirusTotal Scan
+
 on:
   push:
     branches: [ main ]
@@ -8,11 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4  # Клонирует репозиторий
+        uses: actions/checkout@v4
 
-      - name: Scan file with VirusTotal
-        uses: filips123/VirusTotal-Action@v1
+      - name: Scan all files with VirusTotal
+        uses: crazy-max/ghaction-virustotal@v4    
+        env:
+          VT_DEBUG: 1
         with:
-          api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          file_path: ./bin/app.exe  # Путь к файлу в репозитории
-          public_share: true
+          vt_api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          files: |
+            !**/__init__.py
+            !**/.git/**
+            ./app/*
+            install.bat
+            Dockerfile
+            docker-compose.yaml
