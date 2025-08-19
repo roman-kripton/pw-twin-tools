@@ -1,18 +1,31 @@
 name: VirusTotal Scan on Push
+
+permissions:
+  contents: read
+
 on:
   push:
-    branches: [ main ]
 
 jobs:
-  scan:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4  # Клонирует репозиторий
-
-      - name: Scan file with VirusTotal
-        uses: filips123/VirusTotal-Action@v1
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Set up Go
+        uses: actions/setup-go@v5
+      -
+        name: Build
+        run: |
+          GOOS=windows GOARCH=386 go build -o ./ghaction-virustotal-win32.exe -v -ldflags "-s -w"
+          GOOS=windows GOARCH=amd64 go build -o ./ghaction-virustotal-win64.exe -v -ldflags "-s -w"
+      -
+        name: VirusTotal Scan
+        uses: crazy-max/ghaction-virustotal@v4
         with:
-          api_key: ${{ secrets.VIRUSTOTAL_API_KEY }}
-          file_path: ./bin/app.exe  # Путь к файлу в репозитории
-          public_share: true
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            ./ghaction-virustotal-win32.exe
+            ./ghaction-virustotal-win64.exe
